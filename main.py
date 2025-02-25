@@ -22,19 +22,29 @@ EMBEDDING_DIM = 32
 PAD_VALUE = 0
 
 # 1. Preprocessing ------------------------------------------------------------
-def preprocess_input(tournaments):
-    """Convert list of tournaments to padded numerical format"""
-    processed = []
+def preprocess_input(tournaments, win_counts=None):
+    # Process tournaments (X)
+    processed_x = []
     for tournament in tournaments:
         tournament_data = []
         for round_pairings in tournament:
-            # Pad round to 63 pairings with [PAD_VALUE, PAD_VALUE]
             padded_round = np.full((MAX_PAIRINGS_PER_ROUND, 2), PAD_VALUE, dtype=int)
             for i, (team1, team2) in enumerate(round_pairings):
                 padded_round[i] = [team1, team2]
             tournament_data.append(padded_round)
-        processed.append(np.array(tournament_data))
-    return np.array(processed)
+        processed_x.append(np.array(tournament_data))
+    X = np.array(processed_x)
+    
+    # Process win_counts (y) if provided
+    if win_counts is not None:
+        # Initialize padded array for win counts
+        y = np.zeros((len(win_counts), MAX_TEAMS))
+        # Fill in actual values
+        for i, counts in enumerate(win_counts):
+            y[i, :len(counts)] = counts
+        return X, y
+    
+    return X
 
 
 
@@ -61,11 +71,7 @@ tournaments = tournaments()
 win_counts = win_counts()
 
 # Preprocess
-X = preprocess_input(tournaments)
-y = np.array(win_counts)
-y_padded = np.zeros((y.shape[0], MAX_TEAMS))
-y_padded[:, :y.shape[1]] = y
-y = y_padded
+X, y = preprocess_input(tournaments, win_counts)
 number_of_rounds = len(tournaments[0])
 number_of_matchups_per_round = len(tournaments[0][0])
 num_tournaments = len(tournaments)
